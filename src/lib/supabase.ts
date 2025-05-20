@@ -11,7 +11,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Create the Supabase client with explicit storage configuration
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,

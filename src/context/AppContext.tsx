@@ -60,15 +60,41 @@ function AppProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          setUserProfile(null);
-          return null;
+          // Profile not found, create a default one
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              username: `user_${userId.substring(0, 8)}`,
+              first_name: 'New',
+              last_name: 'User',
+              profile_completed: false
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          return newProfile;
         }
         throw error;
       }
 
+      return profile;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
+      return null;
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const profile = await fetchUserProfile(user.id);
       if (profile) {
-        const userProfile = {
-          id: userId,
+        setUserProfile({
+          id: profile.user_id,
           username: profile.username,
           first_name: profile.first_name,
           last_name: profile.last_name,
@@ -80,25 +106,12 @@ function AppProvider({ children }: { children: ReactNode }) {
           favoriteSubcategories: [],
           savedContents: [],
           contributedContents: []
-        };
-        
-        setUserProfile(userProfile);
-        return userProfile;
+        });
       }
-
-      setUserProfile(null);
-      return null;
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
-      setUserProfile(null);
-      return null;
+      console.error('Error refreshing profile:', error);
+      toast.error('Failed to refresh profile');
     }
-  };
-
-  const refreshUserProfile = async () => {
-    if (!user) return;
-    return fetchUserProfile(user.id);
   };
 
   useEffect(() => {
@@ -112,7 +125,23 @@ function AppProvider({ children }: { children: ReactNode }) {
         
         if (session?.user && mounted) {
           setUser(session.user);
-          await fetchUserProfile(session.user.id);
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile && mounted) {
+            setUserProfile({
+              id: profile.user_id,
+              username: profile.username,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url,
+              bio: profile.bio,
+              profile_completed: profile.profile_completed,
+              profile_setup_at: profile.profile_setup_at,
+              interests: [],
+              favoriteSubcategories: [],
+              savedContents: [],
+              contributedContents: []
+            });
+          }
         } else if (mounted) {
           setUser(null);
           setUserProfile(null);
@@ -137,7 +166,23 @@ function AppProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           setUser(session.user);
-          await fetchUserProfile(session.user.id);
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile && mounted) {
+            setUserProfile({
+              id: profile.user_id,
+              username: profile.username,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url,
+              bio: profile.bio,
+              profile_completed: profile.profile_completed,
+              profile_setup_at: profile.profile_setup_at,
+              interests: [],
+              favoriteSubcategories: [],
+              savedContents: [],
+              contributedContents: []
+            });
+          }
         } else {
           setUser(null);
           setUserProfile(null);
@@ -156,7 +201,7 @@ function AppProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   const refreshNews = async () => {
     try {
