@@ -28,6 +28,15 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   db: {
     schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-application-name': 'zapp'
+    }
+  },
+  storage: {
+    retryAttempts: 3,
+    retryInterval: 500
   }
 });
 
